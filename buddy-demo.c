@@ -2,99 +2,112 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct freeList {
+typedef struct memoryList {
     unsigned int size;
-    unsigned int startPosition;
-    unsigned int endPosition;
+    //unsigned int startPosition;
+    //unsigned int endPosition;
     unsigned int usedCheck;
     unsigned int splitCheck;
     unsigned int numBlock;
-    struct freeList* next;
-    struct freeList* prev;
-} freeList;
+    struct memoryList* next;
+    struct memoryList* prev;
+} memoryList;
 
-void printMemory(freeList *this);
-void buddyAlloc(unsigned int numBlock, freeList *this);
+void printMemory(memoryList *this);
+void buddyAlloc(unsigned int numBlock, memoryList *this);
 void buddyFree(unsigned int size);
-unsigned int checkSize(unsigned int numBlock);
-void checkPair(freeList *this);
-void printValid(freeList *this);
-void splitOnce(unsigned sizeRequested, freeList *root)
+unsigned int getSizeRequest(unsigned int numBlock);
+void checkPair(memoryList *this);
+void printValid(memoryList *this);
+int findSplit(unsigned sizeRequested, memoryList *root);
+void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequeseted);
+void testPrint(memoryList *this);
 
 int main() {
-    freeList root = {
-        16, 0, 16, 0, 0, 0, NULL, NULL
+    memoryList root = {
+        16, 0, 0, 0, NULL, NULL
     };
-    buddyAlloc(100, &root);
-    /*char command;
-    while(1){
-        printMemory();
-        scanf("%c",&command);
-        if(command=='a'){
-        }
-        else if(command=='d'){
-        }
-        else if(command=='s'){
-        }
-        else if(command=='q'){
-            break;
-        }
-        else {
-        printf("Type valid input\n");
-        getchar(); //clear buffer                                                                                          
-        }
-        
-    }*/
+    buddyAlloc(5, &root);
+    buddyAlloc(5, &root);
+    memoryList *test = &root;
+    testPrint(test);
+    test = test -> next;
+    testPrint(test);
+    test = test -> next;
+    testPrint(test);
     printMemory(&root);
     return 0;
 }
 
-void buddyAlloc(unsigned int numBlock, freeList *this) {
-    freeList *root = this;
+void testPrint(memoryList *this) {
+    printf("%d,%d,%d,%d,%p,%p\n", this->size, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
+}
+
+void buddyAlloc(unsigned int numBlock, memoryList *this) {
+    memoryList *root = this; //for findSplit();
+    unsigned int sizeRequested = getSizeRequest(numBlock);
     if (numBlock == 0) {
         printf("input valid number\n");
         return;
     }
-    unsigned int sizeRequested = checkSize(numBlock);
-    while(1) {
-        if (this -> next != NULL) {
-            if (this -> usedCheck == 0 && this -> size == sizeRequested && this -> splitCheck == 0) {
-                this -> usedCheck = 1;
-                printf("\nsucessfully allocated!");
-                break;
-            }
-            else {
-                this = this -> next;
-            }
+    while(1){
+        if (this -> usedCheck == 0 && this -> size == sizeRequested && this -> splitCheck == 0) {
+            this -> usedCheck = 1;
+            this -> numBlock = numBlock;
+            printf("sucessfully allocated!\n");
+            return;
         }
         else if(this -> next == NULL) {
-            splitOnce(sizeRequested, root);
+            int errFindSplit = findSplit(sizeRequested, root);
+            if(errFindSplit == 0) this = this -> next;
+            else return;
         }
-        printf("\nPrinted all!");
+        else (this = this -> next);
     }
 }
 
-void splitOnce(unsigned int sizeRequested, freeList *root) {
+int findSplit(unsigned int sizeRequested, memoryList *root) {
     unsigned int upperSize = 2 * sizeRequested;
-    freeList *this = root;
-    freeList *next = root->next;
-    freeList *prev = root->prev;
+    memoryList *this = root;
+    memoryList *next = root->next;
+    memoryList *prev = root->prev;
     while(1) {
-        if (this -> size == upperSize && this -> splitCheck == 0) {
+        if (this -> size == upperSize && this -> splitCheck == 0 && this -> usedCheck == 0) {
             createInstance(this, next, prev, sizeRequested);
-            
+            this -> splitCheck = 1;
+            return 0;
         }
-        else if(this -> size != upperSize) {
-            this = this -> next;
+        this = this -> next;
+        if (this -> next == NULL) {
+            printf("\ncannot allocate");
+            return 1;
         }
     }
+    return 1;
 }
 
-void createInstance(freeList *this, freeList *next, freeList *prev, unsigned int sizeRequested) {
-    
+void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
+    unsigned int newSize = (this -> size)/2;
+    memoryList* split1;
+    memoryList* split2;
+    split1 = (memoryList*) malloc(sizeof(memoryList));
+    split2 = (memoryList*) malloc(sizeof(memoryList));
+    split1 -> size = newSize;
+    split1 -> usedCheck = 0;
+    split1 -> splitCheck = 0;
+    split1 -> numBlock = 0;
+    split1 -> next = split2;
+    split1 -> prev = this;
+    split2 -> size = newSize;
+    split2 -> usedCheck = 0;
+    split2 -> splitCheck = 0;
+    split2 -> numBlock = 0;
+    split2 -> next = next;
+    split2 -> prev = split1;
+    this -> next = split1;
 }
 
-unsigned int checkSize(unsigned int numBlock) {
+unsigned int getSizeRequest(unsigned int numBlock) {
     unsigned int compare = 1;
     while (compare < numBlock) {
         compare <<= 1;
@@ -102,32 +115,25 @@ unsigned int checkSize(unsigned int numBlock) {
     return compare;
 }
 
-void printMemory(freeList *this) {
+void printMemory(memoryList *this) {
     printf("|");
     while(1) {
-        if (this -> next != NULL) {
-            if (this -> usedCheck == 1 && this -> splitCheck == 0) {
-                printValid(this);
-                printf("|");
-            }
-            else if (this -> usedCheck == 0 && this -> splitCheck == 0) {
-                printValid(this);
-                printf("|");
-            }
-            else {
-                this = this -> next;
-            }
+        if (this -> next == NULL) {
+            printValid(this);
+            return;
         }
-        else if(this -> next == NULL) {
+        else if (this -> usedCheck == 1 && this -> splitCheck == 0) {
+            printValid(this);
+        }
+        else if (this -> usedCheck == 0 && this -> splitCheck == 0) {
             printValid(this);
             printf("|");
-            break;
         }
-        printf("\nPrinted all!");
+        this = this -> next;
     }
 }
 
-void printValid(freeList *this) {
+void printValid(memoryList *this) {
     int _size = this -> size;
     int _numBlocks = this -> numBlock;
     int diff = _size - _numBlocks;
@@ -137,4 +143,5 @@ void printValid(freeList *this) {
     for (int i=0;i<diff;i++) {
         printf("-");
     }
+    printf("|");
 }
