@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define MAX 16
 
 typedef struct memoryList {
     unsigned int size;
@@ -20,28 +21,30 @@ unsigned int getSizeRequest(unsigned int numBlock);
 void checkPair(memoryList *this);
 void printValid(memoryList *this);
 int findSplit(unsigned sizeRequested, memoryList *root);
-void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequeseted);
+void createInstance(memoryList *this, memoryList *next, memoryList *prev);
 void testPrint(memoryList *this);
+void loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested);
+int checkFree(memoryList* this, unsigned int sizeRequested, unsigned int numBlock);
 
 int main() {
     memoryList root = {
-        16, 0, 0, 0, NULL, NULL
+        MAX, 0, 0, 0, NULL, NULL
     };
-    buddyAlloc(7, &root);
     buddyAlloc(3, &root);
-    buddyAlloc(2,&root);
-    buddyAlloc(1,&root);
-    buddyAlloc(1,&root);
-    memoryList *test = &root;
-    testPrint(test);
-    test = test -> next;
-    testPrint(test);
-    test = test -> next;
-    testPrint(test);
-    test = test -> next;
-    testPrint(test);
-    test = test -> next;
-    testPrint(test);    
+    buddyAlloc(5, &root);
+    buddyAlloc(2, &root);
+    buddyAlloc(1, &root);
+    buddyAlloc(3, &root);
+    // memoryList *this = &root;
+    // testPrint(this);
+    // this = this -> next;
+    // testPrint(this);
+    // this = this -> next;
+    // testPrint(this);
+    // this = this -> next;
+    // testPrint(this);
+    // this = this -> next;
+    // testPrint(this);
     printMemory(&root);
     return 0;
 }
@@ -57,48 +60,60 @@ void buddyAlloc(unsigned int numBlock, memoryList *this) {
         printf("input valid number\n");
         return;
     }
+    if (numBlock > MAX) {
+        printf("input valid number\n");
+        return;
+    }
     while(1){
+        printf("Checking %p\n", this);
+        printf("sizeRequested = %d\n",sizeRequested);
+        int errcheckFree = checkFree(root, sizeRequested, numBlock);
+        if (errcheckFree == 0){
+            return;
+        }
+        else if (errcheckFree == 1) {
+            printf("loopSplit called\n");
+            loopSplit(root, root -> next, root -> prev, sizeRequested);
+        }
+    }
+}
+
+int checkFree(memoryList* this, unsigned int sizeRequested, unsigned int numBlock) {
+    while(1) {
         if (this -> usedCheck == 0 && this -> size == sizeRequested && this -> splitCheck == 0) {
             this -> usedCheck = 1;
             this -> numBlock = numBlock;
             printf("sucessfully allocated %d blocks!\n", this -> numBlock);
-            return;
-        }
-        else if(this -> next == NULL) {
-            int errFindSplit = findSplit(sizeRequested, root);
-            if(errFindSplit == 0) this = this -> next;
-            else return;
-        }
-        else (this = this -> next);
-    }
-}
-
-int findSplit(unsigned int sizeRequested, memoryList *root) {
-    unsigned int upperSize = 2 * sizeRequested;
-    memoryList *this = root;
-    memoryList *next = root->next;
-    memoryList *prev = root->prev;
-    while(1) {
-        if (this -> size == upperSize && this -> splitCheck == 0 && this -> usedCheck == 0) {
-            createInstance(this, next, prev, sizeRequested);
-            this -> splitCheck = 1;
             return 0;
         }
-        this = this -> next;
-        // /*if (this -> next == NULL && this -> splitCheck == 0 && this -> size == upperSize && this -> usedCheck == 0) {
-        //     createInstance(this, next, prev, sizeRequested);
-        //     this -> splitCheck = 1;
-        //     return 0;
-        // }*?
-        if (this -> next == NULL && this -> size != upperSize) {
-            printf("cannot find a space to split\n");
+        else if (this -> next == NULL) {
             return 1;
         }
+        this = this -> next;
     }
-    return 1;
 }
 
-void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
+void loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
+    for(int i = sizeRequested;i <= MAX;i*=2) {
+        unsigned int checkSplitDone = sizeRequested;
+        for(int j=0;j<10;j++) {
+            unsigned int upperSize = i * 2;
+            printf("%d\n", upperSize);
+            testPrint(this);
+            if (this -> size == upperSize && this -> splitCheck == 0 && this -> usedCheck == 0) {
+                createInstance(this, next, prev);
+                printf("Executed Split!\n");
+                this -> splitCheck = 1;
+                return;
+            }
+            else if (this -> next != NULL) this = this -> next;
+            else break;
+        }
+    }
+    return;
+}
+
+void createInstance(memoryList *this, memoryList *next, memoryList *prev) {
     unsigned int newSize = (this -> size)/2;
     memoryList* tempNext = this -> next;
     memoryList* split1;
