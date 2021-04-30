@@ -27,20 +27,27 @@ int main() {
     memoryList root = {
         16, 0, 0, 0, NULL, NULL
     };
-    buddyAlloc(5, &root);
-    buddyAlloc(5, &root);
+    buddyAlloc(7, &root);
+    buddyAlloc(3, &root);
+    buddyAlloc(2,&root);
+    buddyAlloc(1,&root);
+    buddyAlloc(1,&root);
     memoryList *test = &root;
     testPrint(test);
     test = test -> next;
     testPrint(test);
     test = test -> next;
     testPrint(test);
+    test = test -> next;
+    testPrint(test);
+    test = test -> next;
+    testPrint(test);    
     printMemory(&root);
     return 0;
 }
 
 void testPrint(memoryList *this) {
-    printf("%d,%d,%d,%d,%p,%p\n", this->size, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
+    printf("%p = %d,%d,%d,%d,%p,%p\n", this, this->size, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
 }
 
 void buddyAlloc(unsigned int numBlock, memoryList *this) {
@@ -54,7 +61,7 @@ void buddyAlloc(unsigned int numBlock, memoryList *this) {
         if (this -> usedCheck == 0 && this -> size == sizeRequested && this -> splitCheck == 0) {
             this -> usedCheck = 1;
             this -> numBlock = numBlock;
-            printf("sucessfully allocated!\n");
+            printf("sucessfully allocated %d blocks!\n", this -> numBlock);
             return;
         }
         else if(this -> next == NULL) {
@@ -78,8 +85,13 @@ int findSplit(unsigned int sizeRequested, memoryList *root) {
             return 0;
         }
         this = this -> next;
-        if (this -> next == NULL) {
-            printf("\ncannot allocate");
+        // /*if (this -> next == NULL && this -> splitCheck == 0 && this -> size == upperSize && this -> usedCheck == 0) {
+        //     createInstance(this, next, prev, sizeRequested);
+        //     this -> splitCheck = 1;
+        //     return 0;
+        // }*?
+        if (this -> next == NULL && this -> size != upperSize) {
+            printf("cannot find a space to split\n");
             return 1;
         }
     }
@@ -88,6 +100,7 @@ int findSplit(unsigned int sizeRequested, memoryList *root) {
 
 void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
     unsigned int newSize = (this -> size)/2;
+    memoryList* tempNext = this -> next;
     memoryList* split1;
     memoryList* split2;
     split1 = (memoryList*) malloc(sizeof(memoryList));
@@ -102,7 +115,7 @@ void createInstance(memoryList *this, memoryList *next, memoryList *prev, unsign
     split2 -> usedCheck = 0;
     split2 -> splitCheck = 0;
     split2 -> numBlock = 0;
-    split2 -> next = next;
+    split2 -> next = tempNext;
     split2 -> prev = split1;
     this -> next = split1;
 }
