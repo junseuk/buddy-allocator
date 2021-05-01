@@ -23,28 +23,18 @@ void printValid(memoryList *this);
 int findSplit(unsigned sizeRequested, memoryList *root);
 void createInstance(memoryList *this, memoryList *next, memoryList *prev);
 void testPrint(memoryList *this);
-void loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested);
+int loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested);
 int checkFree(memoryList* this, unsigned int sizeRequested, unsigned int numBlock);
 
 int main() {
     memoryList root = {
         MAX, 0, 0, 0, NULL, NULL
     };
-    buddyAlloc(3, &root);
-    buddyAlloc(5, &root);
-    buddyAlloc(2, &root);
-    buddyAlloc(1, &root);
-    buddyAlloc(3, &root);
-    // memoryList *this = &root;
-    // testPrint(this);
-    // this = this -> next;
-    // testPrint(this);
-    // this = this -> next;
-    // testPrint(this);
-    // this = this -> next;
-    // testPrint(this);
-    // this = this -> next;
-    // testPrint(this);
+    buddyAlloc(7, &root);
+    buddyAlloc(4,&root);
+    buddyAlloc(1,&root);
+    buddyAlloc(2,&root);
+    buddyAlloc(16,&root);
     printMemory(&root);
     return 0;
 }
@@ -73,7 +63,11 @@ void buddyAlloc(unsigned int numBlock, memoryList *this) {
         }
         else if (errcheckFree == 1) {
             printf("loopSplit called\n");
-            loopSplit(root, root -> next, root -> prev, sizeRequested);
+            int errCheckloopSplit = loopSplit(root, root -> next, root -> prev, sizeRequested);
+            if (errCheckloopSplit == 1) {
+                printf("No space in memory\n");
+                return;
+            }
         }
     }
 }
@@ -93,24 +87,25 @@ int checkFree(memoryList* this, unsigned int sizeRequested, unsigned int numBloc
     }
 }
 
-void loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
+int loopSplit(memoryList *this, memoryList *next, memoryList *prev, unsigned int sizeRequested) {
     for(int i = sizeRequested;i <= MAX;i*=2) {
         unsigned int checkSplitDone = sizeRequested;
         for(int j=0;j<10;j++) {
             unsigned int upperSize = i * 2;
-            printf("%d\n", upperSize);
+            if (upperSize == MAX * 2) return 1;
+            printf("upperSize = %d\n", upperSize);
             testPrint(this);
             if (this -> size == upperSize && this -> splitCheck == 0 && this -> usedCheck == 0) {
                 createInstance(this, next, prev);
                 printf("Executed Split!\n");
                 this -> splitCheck = 1;
-                return;
+                return 0;
             }
             else if (this -> next != NULL) this = this -> next;
             else break;
         }
     }
-    return;
+    return 0;
 }
 
 void createInstance(memoryList *this, memoryList *next, memoryList *prev) {
@@ -155,7 +150,6 @@ void printMemory(memoryList *this) {
         }
         else if (this -> usedCheck == 0 && this -> splitCheck == 0) {
             printValid(this);
-            printf("|");
         }
         this = this -> next;
     }
