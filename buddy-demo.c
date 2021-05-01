@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define MAX 16
+#define MAX 64
 
 typedef struct memoryList {
     unsigned int size;
@@ -31,17 +31,17 @@ int main() {
         MAX, 0, 0, 0, 0, NULL, NULL
     };
     memoryList* a = &root;
-    buddyAlloc(7, &root);
-    buddyAlloc(1,&root);
+    buddyAlloc(4, &root);
     buddyAlloc(4,&root);
-    buddyAlloc(2,&root);
+    buddyAlloc(4,&root);
+    buddyAlloc(4,&root);
+    buddyAlloc(30,&root);
+    buddyAlloc(30,&root);
     testPrint(&root);
     printMemory(&root);
-    // printf("\nFree Called\n");
-    // buddyFree(14,&root);
-    // printMemory(a);
-    // testPrint(a);
-    // buddyFree(12,a);
+    printf("\nFree Called\n");
+    testPrint(a);
+    printMemory(a);
     return 0;
 }
 
@@ -123,7 +123,7 @@ int findSplitSpot(memoryList *root, unsigned int sizeRequested) {
 
 void execSplit(memoryList *this) {
     unsigned int newSize = (this -> size)/2;
-    memoryList* tempNext = this -> next;
+    memoryList* nextOfsplit2 = this -> next;
     memoryList* split1;
     memoryList* split2;
     split1 = (memoryList*) malloc(sizeof(memoryList));
@@ -140,9 +140,10 @@ void execSplit(memoryList *this) {
     split2 -> usedCheck = 0;
     split2 -> splitCheck = 0;
     split2 -> numBlock = 0;
-    split2 -> next = tempNext;
+    split2 -> next = nextOfsplit2;
     split2 -> prev = split1;
     this -> next = split1;
+    if (nextOfsplit2 != NULL) nextOfsplit2 -> prev = split2;
 }
 
 unsigned int getSizeRequest(unsigned int numBlock) {
@@ -178,9 +179,15 @@ void buddyFree (unsigned int startPosition, memoryList *root) {
 
 void checkPair (memoryList *this) {
     memoryList *pair = findPair(this);
-    if (pair -> usedCheck == 1 || pair -> splitCheck == 1) {
+    if (pair == NULL) {
         this -> usedCheck = 0;
         this -> numBlock = 0;
+        return;
+    }
+    else if (pair -> usedCheck == 1 || pair -> splitCheck == 1) {
+        this -> usedCheck = 0;
+        this -> numBlock = 0;
+        return;
     }
     else if (pair -> usedCheck == 0) {
         memoryList* merged = freeMemory(this, pair);
@@ -191,10 +198,10 @@ void checkPair (memoryList *this) {
 memoryList* findPair(memoryList *this) {
     memoryList *prev = this -> prev;
     memoryList *next = this -> next;
-    if (prev -> size == this -> size) {
+    if (prev != NULL && prev -> size == this -> size) {
         return prev;
     }
-    else if (next -> size == this -> size) {
+    else if (next != NULL && next -> size == this -> size) {
         return next;
     }
     return NULL;
@@ -206,13 +213,14 @@ memoryList* freeMemory (memoryList* this, memoryList* pair) {
     if (this -> next == pair) {
         merged = this -> prev;
         mergedNext = pair -> next;
+        if(mergedNext != NULL) mergedNext -> prev = merged;
     }
     else {
         merged = pair -> prev;
         mergedNext = this -> next;
+        if(mergedNext != NULL) mergedNext -> prev = merged;
     }
     merged -> next = mergedNext;
-    mergedNext -> prev = merged;
     merged -> splitCheck = 0;
     free(this);
     free(pair);
