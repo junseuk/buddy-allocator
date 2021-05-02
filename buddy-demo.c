@@ -14,45 +14,65 @@ typedef struct memoryList {
 } memoryList;
 
 void printMemory(memoryList *this);
+void printBlock(memoryList *this);
+void printList(memoryList *this);
 void buddyAlloc(unsigned int numBlock, memoryList *this);
-void buddyFree(unsigned int startPosition, memoryList *root);
 unsigned int getSizeRequest(unsigned int numBlock);
+int findSplitSpot(memoryList *this, unsigned int sizeRequested);
+void execSplit(memoryList *this);
+int allocFree(memoryList* this, unsigned int sizeRequested, unsigned int numBlock);
+void buddyFree(unsigned int startPosition, memoryList *root);
 void checkPair(memoryList *this);
 memoryList* freeMemory(memoryList* this, memoryList* pair);
 memoryList* findPair(memoryList *this);
-void printValid(memoryList *this);
-void execSplit(memoryList *this);
-void testPrint(memoryList *this);
-int findSplitSpot(memoryList *this, unsigned int sizeRequested);
-int allocFree(memoryList* this, unsigned int sizeRequested, unsigned int numBlock);
 
 int main() {
     memoryList root = {
         MAX, 0, 0, 0, 0, NULL, NULL
     };
-    memoryList* a = &root;
-    buddyAlloc(4, &root);
-    buddyAlloc(4,&root);
-    buddyAlloc(4,&root);
-    buddyAlloc(4,&root);
-    buddyAlloc(30,&root);
-    buddyAlloc(30,&root);
-    testPrint(&root);
-    printMemory(&root);
-    printf("\nFree Called\n");
-    testPrint(a);
-    printMemory(a);
-    return 0;
-}
-
-void testPrint(memoryList *this) {
     while(1) {
-        printf("%p = %d,%d,%d,%d,%d,%p,%p\n", this, this->size, this -> startPosition, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
-        if (this -> next == NULL) {
-            return;
+        char buffer[10];
+        char command = 0;
+        unsigned int input = 0;
+        printMemory(&root);
+        printf("\nHow many blocks do you want to allocate(a)/free(f) or quit(q)/show linked-list(l)?");
+        fgets(buffer,sizeof(buffer),stdin);
+        int num_toks = sscanf(buffer, "%c %u", &command, &input);
+        switch (num_toks)
+        {
+        case 2:
+            switch (command)
+            {
+            case 'a': case 'A':
+                buddyAlloc(input, &root);
+                break;
+            case 'f': case 'F':
+                buddyFree(input, &root);
+                break;
+            default:
+                printf("Input is not valid\n");
+                break;
+            }
+            break;
+        case 1:
+            switch (command)
+            {
+            case 'q': case 'Q':
+                return 0;
+            case 'l': case 'L':
+                printList(&root);
+                break;
+            default:
+                printf("Input is not valid\n");
+                break;
+            }
+            break;
+        default:
+            printf("Input is not valid\n");
+            break;
         }
-        this = this -> next;
     }
+    return 0;
 }
 
 //Allocate Memory
@@ -60,25 +80,25 @@ void buddyAlloc(unsigned int numBlock, memoryList *this) {
     memoryList *root = this; //for findSplit();
     unsigned int sizeRequested = getSizeRequest(numBlock);
     if (numBlock == 0) {
-        printf("input valid number\n");
+        printf("Input valid number for allocation\n");
         return;
     }
     if (numBlock > MAX) {
-        printf("input valid number\n");
+        printf("Input valid number: too big\n");
         return;
     }
     while(1){
-        printf("sizeRequested = %d\n",sizeRequested);
-        printf("Checking from %p\n", this);
+        //printf("sizeRequested = %d\n",sizeRequested);
+        //printf("Checking %p\n", this);
         int errCheckallocFree = allocFree(root, sizeRequested, numBlock);
         if (errCheckallocFree == 0){
             return;
         }
         else if (errCheckallocFree == 1) {
-            printf("findSplitSpot called\n");
+            //printf("findSplitSpot called\n");
             int errCheckfindSplitSpot = findSplitSpot(root, sizeRequested);
             if (errCheckfindSplitSpot == 1) {
-                printf("No space in memory\n");
+                printf("No space available in memory\n");
                 return;
             }
         }
@@ -90,7 +110,7 @@ int allocFree(memoryList* this, unsigned int sizeRequested, unsigned int numBloc
         if (this -> usedCheck == 0 && this -> size == sizeRequested && this -> splitCheck == 0) {
             this -> usedCheck = 1;
             this -> numBlock = numBlock;
-            printf("sucessfully allocated %d blocks!\n", this -> numBlock);
+            //printf("sucessfully allocated %d blocks!\n", this -> numBlock);
             return 0;
         }
         else if (this -> next == NULL) {
@@ -106,12 +126,9 @@ int findSplitSpot(memoryList *root, unsigned int sizeRequested) {
         while(1) {
             unsigned int upperSize = i * 2;
             if (upperSize == MAX * 2) return 1;
-            printf("upperSize = %d\n", upperSize);
-            printf("upperSize == %d from %p\n", this -> size, this);
             if (this -> size == upperSize && this -> splitCheck == 0 && this -> usedCheck == 0) {
                 execSplit(this);
                 this -> splitCheck = 1;
-                printf("Executed Split!\n");
                 return 0;
             }
             else if (this -> next != NULL) this = this -> next;
@@ -167,7 +184,7 @@ void buddyFree (unsigned int startPosition, memoryList *root) {
             return;
         }
         else if (this -> next == NULL) {
-            printf("input a valid startPosition\n");
+            printf("Input a valid startPosition\n");
             return;
         }
         else {
@@ -232,20 +249,20 @@ void printMemory(memoryList *this) {
     printf("|");
     while(1) {
         if (this -> next == NULL) {
-            printValid(this);
+            printBlock(this);
             return;
         }
         else if (this -> usedCheck == 1 && this -> splitCheck == 0) {
-            printValid(this);
+            printBlock(this);
         }
         else if (this -> usedCheck == 0 && this -> splitCheck == 0) {
-            printValid(this);
+            printBlock(this);
         }
         this = this -> next;
     }
 }
 
-void printValid(memoryList *this) {
+void printBlock(memoryList *this) {
     int _size = this -> size;
     int _numBlocks = this -> numBlock;
     int diff = _size - _numBlocks;
@@ -256,4 +273,14 @@ void printValid(memoryList *this) {
         printf("-");
     }
     printf("|");
+}
+
+void printList(memoryList *this) {
+    while(1) {
+        printf("%p = %d,%d,%d,%d,%d,%p,%p\n", this, this->size, this -> startPosition, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
+        if (this -> next == NULL) {
+            return;
+        }
+        this = this -> next;
+    }
 }
