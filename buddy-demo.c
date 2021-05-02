@@ -3,7 +3,7 @@
 #include <string.h>
 
 // this defines the size of the memory
-#define MAX 16
+#define MAX 64
 
 typedef struct memoryList {
     unsigned int size;
