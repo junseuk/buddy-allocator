@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define MAX 64
+#define MAX 16
 
 typedef struct memoryList {
     unsigned int size;
@@ -276,9 +276,14 @@ void printBlock(memoryList *this) {
 }
 
 void printList(memoryList *this) {
+    printf("\n");
+    printf("In order of\n");
+    printf("Address = size of chunck, usedChecked, splitChecked, numBlock, next link, prev link\n");
+    printf("\n");
     while(1) {
         printf("%p = %d,%d,%d,%d,%d,%p,%p\n", this, this->size, this -> startPosition, this->usedCheck, this->splitCheck, this->numBlock, this->next, this->prev);
         if (this -> next == NULL) {
+            printf("\n");
             return;
         }
         this = this -> next;
